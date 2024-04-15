@@ -51,6 +51,9 @@ TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim8;
 
 /* USER CODE BEGIN PV */
+uint64_t currentTime;
+uint64_t nextTime;
+
 uint16_t ADCBuffer[10] = {0};
 int ADC_Average = 0;
 int ADC_SumAPot = 0;
@@ -163,6 +166,7 @@ int main(void)
   HAL_TIM_Base_Start(&htim3);
   HAL_TIM_Base_Start(&htim8);
   HAL_TIM_Base_Start(&htim4);
+  HAL_TIM_Base_Start(&htim5);
 
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
@@ -184,7 +188,7 @@ int main(void)
   arm_pid_init_f32(&PID2, 0);
 
   UARTInterruptConfig();
-
+  _micros = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -195,9 +199,9 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  static uint32_t timestamp = 0;
-	  static uint64_t timestamp2 =0;
+	  static uint32_t timestamp2 = 0;
 
-	  int64_t currentTime = micros();
+	  currentTime = micros();
 
 	  if(timestamp < HAL_GetTick())
 	  {
@@ -207,6 +211,7 @@ int main(void)
 //		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
 //		  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, A);
 		  MotorControl2();
+		  QEIEncoderPosVel_Update();
 //		  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, B);
 //		  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, A);
 
@@ -215,6 +220,10 @@ int main(void)
 	  if(currentTime > timestamp2)
 	  {
 	  	  timestamp2 = currentTime + 500;//us
+	  	  if(timestamp2 > 4294967296)
+	  	  {
+	  		timestamp2 = 0;
+	  	  }
 	  	  dataSend = fabs(RPMspeed);
 		  dataBytes[0] = header; // Header byte
 		  dataBytes[1] = (uint8_t)(dataSend & 0xFF); // Lower byte
@@ -222,6 +231,7 @@ int main(void)
 		  dataBytes[3] = 0x0A;
 		  HAL_UART_Transmit(&hlpuart1, dataBytes, sizeof(dataBytes), 10);
 	  }
+	  nextTime = timestamp2;
   }
   /* USER CODE END 3 */
 }
@@ -500,7 +510,7 @@ static void MX_TIM5_Init(void)
 
   /* USER CODE END TIM5_Init 1 */
   htim5.Instance = TIM5;
-  htim5.Init.Prescaler = 0;
+  htim5.Init.Prescaler = 169;
   htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim5.Init.Period = 4294967295;
   htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -755,17 +765,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 uint64_t micros()
 {
-	return __HAL_TIM_GET_COUNTER(&htim5)+_micros;
+	return __HAL_TIM_GET_COUNTER(&htim5) + _micros;
 }
 
 void QEIEncoderPosVel_Update()
 {
 	//collect data
 	QEIdata.TimeStamp[NEW] = micros();
-	QEIdata.Position[NEW] = __HAL_TIM_GET_COUNTER(&htim3);
+	QEIdata.Position[NEW] = __HAL_TIM_GET_COUNTER(&htim4);
 
 	//Postion 1 turn calculation
-	QEIdata.QEIPostion_1turn = QEIdata.Position[NEW] % 2048;
+	QEIdata.QEIPostion_1turn = QEIdata.Position[NEW] % 3072;
 
 	//calculate dx
 	int32_t diffPosition = QEIdata.Position[NEW] - QEIdata.Position[OLD];
@@ -781,7 +791,7 @@ void QEIEncoderPosVel_Update()
 
 	//calculate anglar velocity
 	QEIdata.QEIAngularVelocity = diffPosition / diffTime;
-	RPMspeed = (QEIdata.QEIAngularVelocity)/0.10472;
+	RPMspeed = (QEIdata.QEIAngularVelocity * 180.00) / (2.00*PI);
 
 	//store value for next loop
 	QEIdata.Position[OLD] = QEIdata.Position[NEW];
