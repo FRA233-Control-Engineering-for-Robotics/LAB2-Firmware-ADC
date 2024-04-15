@@ -20,7 +20,6 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -66,6 +65,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
   */
 void HAL_MspInit(void)
 {
+
   /* USER CODE BEGIN MspInit 0 */
 
   /* USER CODE END MspInit 0 */
@@ -216,6 +216,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     GPIO_InitStruct.Alternate = GPIO_AF12_LPUART1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+    /* LPUART1 interrupt Init */
+    HAL_NVIC_SetPriority(LPUART1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(LPUART1_IRQn);
   /* USER CODE BEGIN LPUART1_MspInit 1 */
 
   /* USER CODE END LPUART1_MspInit 1 */
@@ -245,6 +248,8 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
     */
     HAL_GPIO_DeInit(GPIOA, LPUART1_TX_Pin|LPUART1_RX_Pin);
 
+    /* LPUART1 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(LPUART1_IRQn);
   /* USER CODE BEGIN LPUART1_MspDeInit 1 */
 
   /* USER CODE END LPUART1_MspDeInit 1 */
@@ -270,6 +275,17 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
   /* USER CODE BEGIN TIM3_MspInit 1 */
 
   /* USER CODE END TIM3_MspInit 1 */
+  }
+  else if(htim_base->Instance==TIM5)
+  {
+  /* USER CODE BEGIN TIM5_MspInit 0 */
+
+  /* USER CODE END TIM5_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_TIM5_CLK_ENABLE();
+  /* USER CODE BEGIN TIM5_MspInit 1 */
+
+  /* USER CODE END TIM5_MspInit 1 */
   }
   else if(htim_base->Instance==TIM8)
   {
@@ -375,6 +391,17 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
   /* USER CODE BEGIN TIM3_MspDeInit 1 */
 
   /* USER CODE END TIM3_MspDeInit 1 */
+  }
+  else if(htim_base->Instance==TIM5)
+  {
+  /* USER CODE BEGIN TIM5_MspDeInit 0 */
+
+  /* USER CODE END TIM5_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM5_CLK_DISABLE();
+  /* USER CODE BEGIN TIM5_MspDeInit 1 */
+
+  /* USER CODE END TIM5_MspDeInit 1 */
   }
   else if(htim_base->Instance==TIM8)
   {

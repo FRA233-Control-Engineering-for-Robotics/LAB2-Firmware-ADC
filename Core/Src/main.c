@@ -47,6 +47,7 @@ UART_HandleTypeDef hlpuart1;
 
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim8;
 
 /* USER CODE BEGIN PV */
@@ -69,6 +70,32 @@ float Vfeedback = 0;
 float Vfeedback2 = 0;
 
 uint32_t QEIReadRaw;
+int16_t RPMspeed;
+
+uint8_t Rx[10];
+
+uint8_t header = 0x45; // Header byte
+uint8_t parityBit = 0; // Parity bit initialized to 0
+uint8_t dataBytes[4]; // Array to hold the bytes of uint16_t and parity bit
+uint16_t dataSend = 4096;
+
+typedef struct
+{
+	// for record New / Old value to calculate dx / dt
+	uint32_t Position[2];
+	uint64_t TimeStamp[2];
+	float QEIPostion_1turn;
+	float QEIAngularVelocity;
+}
+
+QEI_StructureTypeDef;
+QEI_StructureTypeDef QEIdata = {0};
+uint64_t _micros = 0;
+
+enum
+	{
+	NEW,OLD
+	};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -80,11 +107,15 @@ static void MX_ADC1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_TIM4_Init(void);
+static void MX_TIM5_Init(void);
 /* USER CODE BEGIN PFP */
 void ADC_Averaged();
 void MotorControl();
 void MotorControl2();
-float PlantSimulation(float VIn) ;
+
+void QEIEncoderPosVel_Update();
+void UARTInterruptConfig();
+uint64_t micros();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -98,6 +129,7 @@ float PlantSimulation(float VIn) ;
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -126,6 +158,7 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM8_Init();
   MX_TIM4_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim3);
   HAL_TIM_Base_Start(&htim8);
@@ -149,6 +182,9 @@ int main(void)
   PID2.Ki = 0.00000;;
   PID2.Kd = 0.3;
   arm_pid_init_f32(&PID2, 0);
+
+  UARTInterruptConfig();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -159,6 +195,9 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  static uint32_t timestamp = 0;
+	  static uint64_t timestamp2 =0;
+
+	  int64_t currentTime = micros();
 
 	  if(timestamp < HAL_GetTick())
 	  {
@@ -171,6 +210,17 @@ int main(void)
 //		  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, B);
 //		  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, A);
 
+	  }
+
+	  if(currentTime > timestamp2)
+	  {
+	  	  timestamp2 = currentTime + 500;//us
+	  	  dataSend = fabs(RPMspeed);
+		  dataBytes[0] = header; // Header byte
+		  dataBytes[1] = (uint8_t)(dataSend & 0xFF); // Lower byte
+		  dataBytes[2] = (uint8_t)((dataSend >> 8) & 0xFF); // Upper byte
+		  dataBytes[3] = 0x0A;
+		  HAL_UART_Transmit(&hlpuart1, dataBytes, sizeof(dataBytes), 10);
 	  }
   }
   /* USER CODE END 3 */
@@ -432,6 +482,51 @@ static void MX_TIM4_Init(void)
 }
 
 /**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM5_Init(void)
+{
+
+  /* USER CODE BEGIN TIM5_Init 0 */
+
+  /* USER CODE END TIM5_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM5_Init 1 */
+
+  /* USER CODE END TIM5_Init 1 */
+  htim5.Instance = TIM5;
+  htim5.Init.Prescaler = 0;
+  htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim5.Init.Period = 4294967295;
+  htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim5, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM5_Init 2 */
+
+  /* USER CODE END TIM5_Init 2 */
+
+}
+
+/**
   * @brief TIM8 Initialization Function
   * @param None
   * @retval None
@@ -650,6 +745,63 @@ void MotorControl2()
 	}
 }
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if(htim == &htim5)
+	{
+		_micros += UINT32_MAX;
+	}
+}
+
+uint64_t micros()
+{
+	return __HAL_TIM_GET_COUNTER(&htim5)+_micros;
+}
+
+void QEIEncoderPosVel_Update()
+{
+	//collect data
+	QEIdata.TimeStamp[NEW] = micros();
+	QEIdata.Position[NEW] = __HAL_TIM_GET_COUNTER(&htim3);
+
+	//Postion 1 turn calculation
+	QEIdata.QEIPostion_1turn = QEIdata.Position[NEW] % 2048;
+
+	//calculate dx
+	int32_t diffPosition = QEIdata.Position[NEW] - QEIdata.Position[OLD];
+
+	//Handle Warp around
+	if(diffPosition > 28672)
+	diffPosition -=57344;
+	if(diffPosition < -28672)
+	diffPosition +=57344;
+
+	//calculate dt
+	float diffTime = (QEIdata.TimeStamp[NEW]-QEIdata.TimeStamp[OLD]) * 0.000001;
+
+	//calculate anglar velocity
+	QEIdata.QEIAngularVelocity = diffPosition / diffTime;
+	RPMspeed = (QEIdata.QEIAngularVelocity)/0.10472;
+
+	//store value for next loop
+	QEIdata.Position[OLD] = QEIdata.Position[NEW];
+	QEIdata.TimeStamp[OLD]=QEIdata.TimeStamp[NEW];
+}
+
+void UARTInterruptConfig()
+{
+	HAL_UART_Receive_IT(&hlpuart1, Rx,200);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+
+	if(huart == &hlpuart1)
+	{
+		Rx[10] = '\0';
+		HAL_UART_Receive_IT(&hlpuart1, Rx, 200);
+	}
+}
 /* USER CODE END 4 */
 
 /**
