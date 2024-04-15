@@ -46,6 +46,7 @@ DMA_HandleTypeDef hdma_adc1;
 UART_HandleTypeDef hlpuart1;
 
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim8;
 
 /* USER CODE BEGIN PV */
@@ -53,12 +54,21 @@ uint16_t ADCBuffer[10] = {0};
 int ADC_Average = 0;
 int ADC_SumAPot = 0;
 float Degrees_Position = 0;
+float Degrees_Position2 = 0;
 float DutyCycle;
+float DutyCycle2;
+uint16_t A;
+uint16_t B;
 
 arm_pid_instance_f32 PID = {0};
+arm_pid_instance_f32 PID2 = {0};
 float position = 0;
 float setposition = 90;
+float setposition2 = 90;
 float Vfeedback = 0;
+float Vfeedback2 = 0;
+
+uint32_t QEIReadRaw;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,9 +79,11 @@ static void MX_LPUART1_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM8_Init(void);
+static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 void ADC_Averaged();
 void MotorControl();
+void MotorControl2();
 float PlantSimulation(float VIn) ;
 /* USER CODE END PFP */
 
@@ -113,17 +125,30 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM3_Init();
   MX_TIM8_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim3);
+  HAL_TIM_Base_Start(&htim8);
+  HAL_TIM_Base_Start(&htim4);
+
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
+  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
+
+  HAL_TIM_Encoder_Start(&htim4,TIM_CHANNEL_ALL);
 
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
   HAL_ADC_Start_DMA(&hadc1, ADCBuffer, 10);
 
-  PID.Kp = 0.2;
-  PID.Ki = 0.00001;;
-  PID.Kd = 0.12;
+  PID.Kp = 0.18;
+  PID.Ki = 0.00000;;
+  PID.Kd = 0.3;
   arm_pid_init_f32(&PID, 0);
+
+  PID2.Kp = 0.18;
+  PID2.Ki = 0.00000;;
+  PID2.Kd = 0.3;
+  arm_pid_init_f32(&PID2, 0);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -139,7 +164,13 @@ int main(void)
 	  {
 		  timestamp = HAL_GetTick() + 1;
 		  ADC_Averaged();
-		  MotorControl();
+//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
+//		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
+//		  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, A);
+		  MotorControl2();
+//		  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, B);
+//		  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, A);
+
 	  }
   }
   /* USER CODE END 3 */
@@ -352,6 +383,55 @@ static void MX_TIM3_Init(void)
 }
 
 /**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 0;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 3071;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
+  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC1Filter = 0;
+  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC2Filter = 0;
+  if (HAL_TIM_Encoder_Init(&htim4, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+
+}
+
+/**
   * @brief TIM8 Initialization Function
   * @param None
   * @retval None
@@ -406,6 +486,14 @@ static void MX_TIM8_Init(void)
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
   sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
   if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -506,41 +594,62 @@ void ADC_Averaged()
 
 void MotorControl()
 {
-	Vfeedback = arm_pid_f32(&PID, setposition - Degrees_Position);
+	Vfeedback = arm_pid_f32(&PID2, setposition - Degrees_Position);
 
 	if (Vfeedback >= 0)
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
-		DutyCycle = ((Vfeedback * 4899.00) / 90.00) + 100;
+		DutyCycle = ((Vfeedback * 4899.00) / 40.00) + 100;
 		if (DutyCycle > 4999) DutyCycle = 4999;
-		else if (DutyCycle < 110) DutyCycle = 0;
-		else if (DutyCycle < 150) DutyCycle = 200;
+		else if (DutyCycle < 2500) DutyCycle = 0;
+		else if (DutyCycle < 2600) DutyCycle = 2600;
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 	else
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 1);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 0);
-		DutyCycle = ((Vfeedback * 4899.00) / 90.00) - 100;
+		DutyCycle = ((Vfeedback * 4899.00) / 40.00) - 100;
 		if (DutyCycle < -4999) DutyCycle = -4999;
-		else if (DutyCycle > -110) DutyCycle = 0;
-		else if (DutyCycle > -150) DutyCycle = -200;
+		else if (DutyCycle > -2500) DutyCycle = 0;
+		else if (DutyCycle > -2600) DutyCycle = -2600;
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 }
 
-float PlantSimulation(float VIn) // run with fix frequency
+void MotorControl2()
 {
-	static float speed =0;
-	static float position =0;
-	float current= VIn - speed * 0.0123;
-	float torque = current * 0.456;
-	float acc = torque * 0.789;
-	speed += acc;
-	position += speed;
-	return position;
+	QEIReadRaw = __HAL_TIM_GET_COUNTER(&htim4);
+	Degrees_Position2 = (QEIReadRaw * 360.00) / 3072.00;
+
+	Vfeedback2 = arm_pid_f32(&PID, setposition2 - Degrees_Position2);
+
+	if (Vfeedback2 >= 0)
+	{
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, 0);
+
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
+		DutyCycle2 = ((Vfeedback2 * 4799.00) / 20.00) + 200;
+		if (DutyCycle2 > 4999) DutyCycle2 = 4999;
+
+		if (fabs(setposition2 - Degrees_Position2) <= 0.5) DutyCycle2 = 0;
+
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, fabs(DutyCycle2));
+	}
+	else
+	{
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, 0);
+
+		DutyCycle2 = ((Vfeedback2 * 4799.00) / 20.00) - 200;
+		if (DutyCycle2 < -4999) DutyCycle2 = -4999;
+
+		if (fabs(setposition2 - Degrees_Position2) <= 0.5) DutyCycle2 = 0;
+
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, fabs(DutyCycle2));
+	}
 }
+
 /* USER CODE END 4 */
 
 /**
