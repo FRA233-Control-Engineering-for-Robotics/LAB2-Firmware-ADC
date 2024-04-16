@@ -84,6 +84,7 @@ float setposition = 90;
 float Vfeedback = 0;
 
 float setposition2 = 90;
+float setposition20 = 90;
 float Vfeedback2 = 0;
 
 uint32_t QEIReadRaw;
@@ -207,9 +208,9 @@ int main(void)
 //  PID2.Kp = 0.18;
 //  PID2.Ki = 0.00000;;
 //  PID2.Kd = 0.3;
-  PID2.Kp = 0.5;
-  PID2.Ki = 0.00001;;
-  PID2.Kd = 0.7;
+  PID2.Kp = 0.1;
+  PID2.Ki = 0.00000;;
+  PID2.Kd = 0.05;
   arm_pid_init_f32(&PID2, 0);
 
   UARTInterruptConfig();
@@ -232,7 +233,6 @@ int main(void)
 			  timestamp = HAL_GetTick() + 1; //1000 Hz
 
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
-			  ADC_Averaged();
 			  MotorControl(); //L298N
 		  }
 	  }
@@ -245,7 +245,6 @@ int main(void)
 			  timestamp = HAL_GetTick() + 1;//1000 Hz
 
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 0);
-			  ADC_Averaged();
 			  MotorControl2(); //DRV8833
 		  }
 	  }
@@ -813,20 +812,25 @@ void MotorControl()
 
 void MotorControl2()
 {
+	ADC_Averaged();
 	QEIReadRaw = __HAL_TIM_GET_COUNTER(&htim4);
 	Degrees_Position2 = (QEIReadRaw * 360.00) / 3072.00;
 
 	Vfeedback2 = arm_pid_f32(&PID, setposition2 - Degrees_Position2);
+
+	if (Vfeedback2 > 1500) Vfeedback2 = 1500;
+	else if (Vfeedback2 < -1500) Vfeedback2 = -1500;
+
 
 	if (Vfeedback2 >= 0)
 	{
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, 0);
 
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
-		DutyCycle2 = ((Vfeedback2 * 4799.00) / 20.00) + 200;
+		DutyCycle2 = ((Vfeedback2 * 4799.00) / 1500.00) + 200;
 		if (DutyCycle2 > 4999) DutyCycle2 = 4999;
 
-		if (fabs(setposition2 - Degrees_Position2) <= 0.5) DutyCycle2 = 0;
+		if (fabs(setposition2 - Degrees_Position2) <= 1) DutyCycle2 = 0;
 
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, fabs(DutyCycle2));
 	}
@@ -834,10 +838,10 @@ void MotorControl2()
 	{
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, 0);
 
-		DutyCycle2 = ((Vfeedback2 * 4799.00) / 20.00) - 200;
+		DutyCycle2 = ((Vfeedback2 * 4799.00) / 1500.00) - 200;
 		if (DutyCycle2 < -4999) DutyCycle2 = -4999;
 
-		if (fabs(setposition2 - Degrees_Position2) <= 0.5) DutyCycle2 = 0;
+		if (fabs(setposition2 - Degrees_Position2) <= 1) DutyCycle2 = 0;
 
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, fabs(DutyCycle2));
 	}
