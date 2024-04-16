@@ -192,9 +192,9 @@ int main(void)
   HAL_ADC_Start_DMA(&hadc1, ADCBuffer, 10);
 
   // PID Parameter for L298N Motor
-  PID.Kp = 0.18;
-  PID.Ki = 0.00000;;
-  PID.Kd = 0.3;
+  PID.Kp = 3.33;
+  PID.Ki = 0.0667;;
+  PID.Kd = 0.0;
   arm_pid_init_f32(&PID, 0);
 
   // PID Parameter for DRV8833 Motor
@@ -241,6 +241,7 @@ int main(void)
 
 	  else if (state == 2) //PWM Waijung Control L298N
 	  {
+		  static uint32_t timestamp = 0;
 		  static uint32_t timestamp2 = 0; //Waijung Time Control
 		  static uint32_t timestampLED = 0; //LED Time Control
 		  static uint32_t timestampMOR = 0; //Motor Time Control
@@ -253,11 +254,11 @@ int main(void)
 
 		  if(currentTime > timestamp2)
 		  {
-			  timestamp2 = currentTime + 500; //us 200 Hz
+			  timestamp2 = currentTime + 5000; //us 200 Hz
 
 			  if(timestamp2 > 4294967296) timestamp2 = 0; //Counter Reset Overflow
 
-			  dataSend = fabs(Degrees_Position);
+			  dataSend = fabs(ADC_Average);
 
 			  dataBytes[0] = header; // Header byte
 			  dataBytes[1] = (uint8_t)(dataSend & 0xFF); // Lower byte
@@ -753,20 +754,20 @@ void MotorControl()
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
-		DutyCycle = ((Vfeedback * 4899.00) / 40.00) + 100;
+		DutyCycle = ((Vfeedback * 4899.00) / 20.00) + 100;
 		if (DutyCycle > 4999) DutyCycle = 4999;
-		else if (DutyCycle < 2500) DutyCycle = 0;
-		else if (DutyCycle < 2600) DutyCycle = 2600;
+		else if (DutyCycle < 1700) DutyCycle = 0;
+		else if (DutyCycle < 1800) DutyCycle = 1800;
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 	else
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 1);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 0);
-		DutyCycle = ((Vfeedback * 4899.00) / 40.00) - 100;
+		DutyCycle = ((Vfeedback * 4899.00) / 20.00) - 100;
 		if (DutyCycle < -4999) DutyCycle = -4999;
-		else if (DutyCycle > -2500) DutyCycle = 0;
-		else if (DutyCycle > -2600) DutyCycle = -2600;
+		else if (DutyCycle > -1700) DutyCycle = 0;
+		else if (DutyCycle > -1800) DutyCycle = -1800;
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 }
@@ -810,16 +811,27 @@ void MotorControl3()
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
-		DutyCycle = ((Vfeedback * 4899.00) / 40.00) + 100;
-		if (PWMDrive > 4999) PWMDrive = 4999;
-		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(PWMDrive));
+		DutyCycle = ((PWMDrive * 4899.00) / 5000.00) + 100;
+//		if (PWMDrive > 4999) PWMDrive = 4999;
+//		else if (PWMDrive < 1250) PWMDrive = 0;
+//		else if (PWMDrive < 1800) PWMDrive = 1900;
+		if (DutyCycle > 4999) DutyCycle = 4999;
+		else if (DutyCycle < 1000) DutyCycle = 0;
+		else if (DutyCycle < 1800) DutyCycle = 1800;
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 	else
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 1);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 0);
-		if (PWMDrive < -4999) PWMDrive = -4999;
-		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(PWMDrive));
+		DutyCycle = ((PWMDrive * 4899.00) / 5000.00) - 100;
+//		if (PWMDrive < -4999) PWMDrive = -4999;
+//		else if (PWMDrive > -1250) PWMDrive = 0;
+//		else if (PWMDrive > -1800) PWMDrive = -1900;
+		if (DutyCycle < -4999) DutyCycle = -4999;
+		else if (DutyCycle > -1000) DutyCycle = 0;
+		else if (DutyCycle > -1800) DutyCycle = -1800;
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 }
 
