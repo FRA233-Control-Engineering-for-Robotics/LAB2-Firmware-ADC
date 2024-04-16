@@ -75,7 +75,8 @@ float Vfeedback2 = 0;
 uint32_t QEIReadRaw;
 int16_t RPMspeed;
 
-uint8_t Rx[10];
+uint8_t Rx[5];
+uint16_t PWMDrive; //From MathLab
 
 uint8_t header = 0x45; // Header byte
 uint8_t parityBit = 0; // Parity bit initialized to 0
@@ -216,7 +217,7 @@ int main(void)
 //		  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, A);
 
 	  }
-
+	  PWMDrive = (Rx[2]<< 8)+Rx[1];
 	  if(currentTime > timestamp2)
 	  {
 	  	  timestamp2 = currentTime + 500;//us
@@ -800,7 +801,7 @@ void QEIEncoderPosVel_Update()
 
 void UARTInterruptConfig()
 {
-	HAL_UART_Receive_IT(&hlpuart1, Rx,200);
+	HAL_UART_Receive_IT(&hlpuart1, Rx,4);
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -808,8 +809,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 	if(huart == &hlpuart1)
 	{
-		Rx[10] = '\0';
-		HAL_UART_Receive_IT(&hlpuart1, Rx, 200);
+		Rx[4] = '\0';
+		HAL_UART_Receive_IT(&hlpuart1, Rx, 4);
 	}
 }
 /* USER CODE END 4 */
