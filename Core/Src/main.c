@@ -51,8 +51,8 @@ TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim8;
 
 /* USER CODE BEGIN PV */
+uint8_t state = 0;
 uint64_t currentTime;
-uint64_t nextTime;
 
 uint16_t ADCBuffer[10] = {0};
 int ADC_Average = 0;
@@ -199,40 +199,49 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  static uint32_t timestamp = 0;
-	  static uint32_t timestamp2 = 0;
-
-	  currentTime = micros();
-
-	  if(timestamp < HAL_GetTick())
+	  if (state == 0)
 	  {
-		  timestamp = HAL_GetTick() + 1;
-		  ADC_Averaged();
-//		  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
-//		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
-//		  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, A);
-		  MotorControl2();
-		  QEIEncoderPosVel_Update();
-//		  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, B);
-//		  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, A);
+		  static uint32_t timestamp = 0;
+		  if(timestamp < HAL_GetTick())
+		  {
+			  timestamp = HAL_GetTick() + 1;
+			  MotorControl();
+		  }
+	  }
 
-	  }
-	  PWMDrive = (Rx[2]<< 8)+Rx[1];
-	  if(currentTime > timestamp2)
+	  else if (state == 1)
 	  {
-	  	  timestamp2 = currentTime + 500;//us
-	  	  if(timestamp2 > 4294967296)
-	  	  {
-	  		timestamp2 = 0;
-	  	  }
-	  	  dataSend = fabs(RPMspeed);
-		  dataBytes[0] = header; // Header byte
-		  dataBytes[1] = (uint8_t)(dataSend & 0xFF); // Lower byte
-		  dataBytes[2] = (uint8_t)((dataSend >> 8) & 0xFF); // Upper byte
-		  dataBytes[3] = 0x0A;
-		  HAL_UART_Transmit(&hlpuart1, dataBytes, sizeof(dataBytes), 10);
+		  static uint32_t timestamp = 0;
+		  if(timestamp < HAL_GetTick())
+		  {
+			  timestamp = HAL_GetTick() + 1;
+			  MotorControl2();
+		  }
 	  }
-	  nextTime = timestamp2;
+
+	  else if (state == 2)
+	  {
+		  static uint32_t timestamp2 = 0;
+		  currentTime = micros();
+
+		  PWMDrive = (Rx[2]<< 8)+Rx[1];
+
+		  if(currentTime > timestamp2)
+		  {
+			  timestamp2 = currentTime + 500;//us
+
+			  if(timestamp2 > 4294967296) timestamp2 = 0;
+
+			  dataSend = fabs(RPMspeed);
+
+			  dataBytes[0] = header; // Header byte
+			  dataBytes[1] = (uint8_t)(dataSend & 0xFF); // Lower byte
+			  dataBytes[2] = (uint8_t)((dataSend >> 8) & 0xFF); // Upper byte
+			  dataBytes[3] = 0x0A;
+
+			  HAL_UART_Transmit(&hlpuart1, dataBytes, sizeof(dataBytes), 10);
+		  }
+	  }
   }
   /* USER CODE END 3 */
 }
@@ -700,6 +709,7 @@ void ADC_Averaged()
 
 void MotorControl()
 {
+	ADC_Averaged();
 	Vfeedback = arm_pid_f32(&PID2, setposition - Degrees_Position);
 
 	if (Vfeedback >= 0)
@@ -811,6 +821,25 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	{
 		Rx[4] = '\0';
 		HAL_UART_Receive_IT(&hlpuart1, Rx, 4);
+	}
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if (GPIO_Pin == GPIO_PIN_13)
+	{
+		switch (state)
+		{
+		case 0:
+			state = 1;
+			break;
+		case 1:
+			state = 2;
+			break;
+		case 2:
+			state = 0;
+			break;
+		}
 	}
 }
 /* USER CODE END 4 */
