@@ -53,6 +53,7 @@ TIM_HandleTypeDef htim8;
 /* USER CODE BEGIN PV */
 uint8_t state = 0;
 uint64_t currentTime;
+uint64_t currentTimeLED;
 
 uint16_t ADCBuffer[10] = {0};
 int ADC_Average = 0;
@@ -205,6 +206,7 @@ int main(void)
 		  if(timestamp < HAL_GetTick())
 		  {
 			  timestamp = HAL_GetTick() + 1;
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
 			  MotorControl();
 		  }
 	  }
@@ -215,6 +217,7 @@ int main(void)
 		  if(timestamp < HAL_GetTick())
 		  {
 			  timestamp = HAL_GetTick() + 1;
+			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 0);
 			  MotorControl2();
 		  }
 	  }
@@ -222,7 +225,10 @@ int main(void)
 	  else if (state == 2)
 	  {
 		  static uint32_t timestamp2 = 0;
+		  static uint32_t timestampLED = 0;
+
 		  currentTime = micros();
+		  currentTimeLED = micros();
 
 		  PWMDrive = (Rx[2]<< 8)+Rx[1];
 
@@ -240,6 +246,12 @@ int main(void)
 			  dataBytes[3] = 0x0A;
 
 			  HAL_UART_Transmit(&hlpuart1, dataBytes, sizeof(dataBytes), 10);
+		  }
+
+		  if(currentTimeLED > timestampLED)
+		  {
+			  timestampLED = currentTime + 500000;//us
+			  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 		  }
 	  }
   }
@@ -782,7 +794,7 @@ uint64_t micros()
 void QEIEncoderPosVel_Update()
 {
 	//collect data
-	QEIdata.TimeStamp[NEW] = micros();
+	QEIdata.TimeStamp[NEW]= micros();
 	QEIdata.Position[NEW] = __HAL_TIM_GET_COUNTER(&htim4);
 
 	//Postion 1 turn calculation
@@ -793,9 +805,9 @@ void QEIEncoderPosVel_Update()
 
 	//Handle Warp around
 	if(diffPosition > 28672)
-	diffPosition -=57344;
+		diffPosition -= 57344;
 	if(diffPosition < -28672)
-	diffPosition +=57344;
+		diffPosition += 57344;
 
 	//calculate dt
 	float diffTime = (QEIdata.TimeStamp[NEW]-QEIdata.TimeStamp[OLD]) * 0.000001;
@@ -806,7 +818,7 @@ void QEIEncoderPosVel_Update()
 
 	//store value for next loop
 	QEIdata.Position[OLD] = QEIdata.Position[NEW];
-	QEIdata.TimeStamp[OLD]=QEIdata.TimeStamp[NEW];
+	QEIdata.TimeStamp[OLD]= QEIdata.TimeStamp[NEW];
 }
 
 void UARTInterruptConfig()
