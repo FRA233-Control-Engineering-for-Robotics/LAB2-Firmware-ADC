@@ -51,34 +51,46 @@ TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim8;
 
 /* USER CODE BEGIN PV */
+//State
 uint8_t state = 0;
+
+//Time Const
 uint64_t currentTime;
 uint64_t currentTimeLED;
 
+//ADC Poten Read
 uint16_t ADCBuffer[10] = {0};
 int ADC_Average = 0;
 int ADC_SumAPot = 0;
+
+//Positions Motor
 float Degrees_Position = 0;
-float Degrees_Position2 = 0;
 float DutyCycle;
+
+float Degrees_Position2 = 0;
 float DutyCycle2;
+
 uint16_t A;
 uint16_t B;
 
+//PID Const
 arm_pid_instance_f32 PID = {0};
 arm_pid_instance_f32 PID2 = {0};
-float position = 0;
+
 float setposition = 90;
-float setposition2 = 90;
 float Vfeedback = 0;
+
+float setposition2 = 90;
 float Vfeedback2 = 0;
 
 uint32_t QEIReadRaw;
 int16_t RPMspeed;
 
+//Waijung Recieve
 uint8_t Rx[5];
 int PWMDrive; //From MathLab
 
+//Waijung Transmit
 uint8_t header = 0x45; // Header byte
 uint8_t parityBit = 0; // Parity bit initialized to 0
 uint8_t dataBytes[4]; // Array to hold the bytes of uint16_t and parity bit
@@ -98,9 +110,9 @@ QEI_StructureTypeDef QEIdata = {0};
 uint64_t _micros = 0;
 
 enum
-	{
+{
 	NEW,OLD
-	};
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -165,25 +177,27 @@ int main(void)
   MX_TIM4_Init();
   MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start(&htim3);
-  HAL_TIM_Base_Start(&htim8);
-  HAL_TIM_Base_Start(&htim4);
-  HAL_TIM_Base_Start(&htim5);
+  HAL_TIM_Base_Start(&htim3); //DMA Out Event 1000 Hz
+  HAL_TIM_Base_Start(&htim4); //QEI Read
+  HAL_TIM_Base_Start(&htim5); //Microsencond Timer
+  HAL_TIM_Base_Start(&htim8); //PWM Generation
 
-  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1); //L298N
+  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2); //DRV8833 AI1
+  HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3); //DRV8833 AI2
 
   HAL_TIM_Encoder_Start(&htim4,TIM_CHANNEL_ALL);
 
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
   HAL_ADC_Start_DMA(&hadc1, ADCBuffer, 10);
 
+  // PID Parameter for L298N Motor
   PID.Kp = 0.18;
   PID.Ki = 0.00000;;
   PID.Kd = 0.3;
   arm_pid_init_f32(&PID, 0);
 
+  // PID Parameter for DRV8833 Motor
   PID2.Kp = 0.18;
   PID2.Ki = 0.00000;;
   PID2.Kd = 0.3;
@@ -200,43 +214,48 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if (state == 0)
+
+	  if (state == 0) //L298N Driver Control
 	  {
 		  static uint32_t timestamp = 0;
 		  if(timestamp < HAL_GetTick())
 		  {
-			  timestamp = HAL_GetTick() + 1;
+			  timestamp = HAL_GetTick() + 1; //1000 Hz
+
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
-			  MotorControl();
+			  MotorControl(); //L298N
 		  }
 	  }
 
-	  else if (state == 1)
+	  else if (state == 1) //DRV8833 Driver Control
 	  {
 		  static uint32_t timestamp = 0;
 		  if(timestamp < HAL_GetTick())
 		  {
-			  timestamp = HAL_GetTick() + 1;
+			  timestamp = HAL_GetTick() + 1;//1000 Hz
+
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 0);
-			  MotorControl2();
+			  MotorControl2(); //DRV8833
 		  }
 	  }
 
-	  else if (state == 2)
+	  else if (state == 2) //PWM Waijung Control L298N
 	  {
-		  static uint32_t timestamp2 = 0;
-		  static uint32_t timestampLED = 0;
+		  static uint32_t timestamp2 = 0; //Waijung Time Control
+		  static uint32_t timestampLED = 0; //LED Time Control
+		  static uint32_t timestampMOR = 0; //Motor Time Control
 
-		  currentTime = micros();
-		  currentTimeLED = micros();
+		  currentTime = micros(); //Time Counter for Waijung
+		  currentTimeLED = micros(); //Time Counter for LED
 
+		  //Map Rx Data to PWM
 		  PWMDrive = (int16_t)(Rx[2]<< 8)+Rx[1];
 
 		  if(currentTime > timestamp2)
 		  {
-			  timestamp2 = currentTime + 500;//us
+			  timestamp2 = currentTime + 500; //us 200 Hz
 
-			  if(timestamp2 > 4294967296) timestamp2 = 0;
+			  if(timestamp2 > 4294967296) timestamp2 = 0; //Counter Reset Overflow
 
 			  dataSend = fabs(Degrees_Position);
 
@@ -247,20 +266,18 @@ int main(void)
 
 			  HAL_UART_Transmit(&hlpuart1, dataBytes, sizeof(dataBytes), 10);
 		  }
-		  static uint32_t timestamp = 0;
-		  if(timestamp < HAL_GetTick())
+
+		  if(timestamp < HAL_GetTick()) //Motor Control from Waijung PWM
 		  {
-			  timestamp = HAL_GetTick() + 1;
-			  ADC_Averaged();
+			  timestamp = HAL_GetTick() + 1; //1000Hz
 			  MotorControl3();
 		  }
-
-
-		  if(currentTimeLED > timestampLED)
+		  if(currentTimeLED > timestampLED) //LED Constance Frequency 0.5 s
 		  {
-			  timestampLED = currentTime + 500000;//us
+			  timestampLED = currentTime + 500; //us
 			  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 		  }
+
 	  }
   }
   /* USER CODE END 3 */
@@ -788,6 +805,7 @@ void MotorControl2()
 
 void MotorControl3()
 {
+	ADC_Averaged();
 	if (PWMDrive >= 0)
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
