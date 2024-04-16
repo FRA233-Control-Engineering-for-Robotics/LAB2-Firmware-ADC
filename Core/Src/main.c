@@ -77,7 +77,7 @@ uint32_t QEIReadRaw;
 int16_t RPMspeed;
 
 uint8_t Rx[5];
-uint16_t PWMDrive; //From MathLab
+int PWMDrive; //From MathLab
 
 uint8_t header = 0x45; // Header byte
 uint8_t parityBit = 0; // Parity bit initialized to 0
@@ -117,7 +117,7 @@ static void MX_TIM5_Init(void);
 void ADC_Averaged();
 void MotorControl();
 void MotorControl2();
-
+void MotorControl3();
 void QEIEncoderPosVel_Update();
 void UARTInterruptConfig();
 uint64_t micros();
@@ -230,7 +230,7 @@ int main(void)
 		  currentTime = micros();
 		  currentTimeLED = micros();
 
-		  PWMDrive = (Rx[2]<< 8)+Rx[1];
+		  PWMDrive = (int16_t)(Rx[2]<< 8)+Rx[1];
 
 		  if(currentTime > timestamp2)
 		  {
@@ -238,7 +238,7 @@ int main(void)
 
 			  if(timestamp2 > 4294967296) timestamp2 = 0;
 
-			  dataSend = fabs(RPMspeed);
+			  dataSend = fabs(Degrees_Position);
 
 			  dataBytes[0] = header; // Header byte
 			  dataBytes[1] = (uint8_t)(dataSend & 0xFF); // Lower byte
@@ -247,6 +247,14 @@ int main(void)
 
 			  HAL_UART_Transmit(&hlpuart1, dataBytes, sizeof(dataBytes), 10);
 		  }
+		  static uint32_t timestamp = 0;
+		  if(timestamp < HAL_GetTick())
+		  {
+			  timestamp = HAL_GetTick() + 1;
+			  ADC_Averaged();
+			  MotorControl3();
+		  }
+
 
 		  if(currentTimeLED > timestampLED)
 		  {
@@ -775,6 +783,25 @@ void MotorControl2()
 		if (fabs(setposition2 - Degrees_Position2) <= 0.5) DutyCycle2 = 0;
 
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, fabs(DutyCycle2));
+	}
+}
+
+void MotorControl3()
+{
+	if (PWMDrive >= 0)
+	{
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
+		DutyCycle = ((Vfeedback * 4899.00) / 40.00) + 100;
+		if (PWMDrive > 4999) PWMDrive = 4999;
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(PWMDrive));
+	}
+	else
+	{
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 1);
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 0);
+		if (PWMDrive < -4999) PWMDrive = -4999;
+		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(PWMDrive));
 	}
 }
 
