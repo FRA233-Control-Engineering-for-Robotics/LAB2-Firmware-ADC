@@ -41,7 +41,9 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
 DMA_HandleTypeDef hdma_adc1;
+DMA_HandleTypeDef hdma_adc2;
 
 UART_HandleTypeDef hlpuart1;
 
@@ -60,8 +62,11 @@ uint64_t currentTimeLED;
 
 //ADC Poten Read
 uint16_t ADCBuffer[10] = {0};
+uint16_t ADCBuffer2[10] = {0};
 int ADC_Average = 0;
 int ADC_SumAPot = 0;
+int ADC_Average2 = 0;
+int ADC_SumAPot2 = 0;
 
 //Positions Motor
 float Degrees_Position = 0;
@@ -125,8 +130,10 @@ static void MX_TIM3_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM5_Init(void);
+static void MX_ADC2_Init(void);
 /* USER CODE BEGIN PFP */
 void ADC_Averaged();
+void ADC_Averaged2();
 void MotorControl();
 void MotorControl2();
 void MotorControl3();
@@ -176,6 +183,7 @@ int main(void)
   MX_TIM8_Init();
   MX_TIM4_Init();
   MX_TIM5_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim3); //DMA Out Event 1000 Hz
   HAL_TIM_Base_Start(&htim4); //QEI Read
@@ -190,6 +198,7 @@ int main(void)
 
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
   HAL_ADC_Start_DMA(&hadc1, ADCBuffer, 10);
+  HAL_ADC_Start_DMA(&hadc2, ADCBuffer2, 10);
 
   // PID Parameter for L298N Motor
   PID.Kp = 3.33;
@@ -223,6 +232,7 @@ int main(void)
 			  timestamp = HAL_GetTick() + 1; //1000 Hz
 
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
+			  ADC_Averaged2();
 			  MotorControl(); //L298N
 		  }
 	  }
@@ -235,6 +245,7 @@ int main(void)
 			  timestamp = HAL_GetTick() + 1;//1000 Hz
 
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 0);
+			  ADC_Averaged2();
 			  MotorControl2(); //DRV8833
 		  }
 	  }
@@ -395,6 +406,65 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief ADC2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC2_Init(void)
+{
+
+  /* USER CODE BEGIN ADC2_Init 0 */
+
+  /* USER CODE END ADC2_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC2_Init 1 */
+
+  /* USER CODE END ADC2_Init 1 */
+
+  /** Common config
+  */
+  hadc2.Instance = ADC2;
+  hadc2.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc2.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc2.Init.GainCompensation = 0;
+  hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc2.Init.LowPowerAutoWait = DISABLE;
+  hadc2.Init.ContinuousConvMode = DISABLE;
+  hadc2.Init.NbrOfConversion = 1;
+  hadc2.Init.DiscontinuousConvMode = DISABLE;
+  hadc2.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T3_TRGO;
+  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+  hadc2.Init.DMAContinuousRequests = ENABLE;
+  hadc2.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc2.Init.OversamplingMode = DISABLE;
+  if (HAL_ADC_Init(&hadc2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_2;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC2_Init 2 */
+
+  /* USER CODE END ADC2_Init 2 */
 
 }
 
@@ -688,6 +758,12 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+  /* DMA1_Channel2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
+  /* DMAMUX_OVR_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMAMUX_OVR_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMAMUX_OVR_IRQn);
 
 }
 
@@ -744,6 +820,18 @@ void ADC_Averaged()
 	ADC_SumAPot = 0;
 	Degrees_Position = (ADC_Average * 360.00) / 4095.00;
 }
+void ADC_Averaged2()
+{
+	for (int i = 0; i < 10; i++)
+	{
+		ADC_SumAPot2 += ADCBuffer2[i];
+	}
+
+	ADC_Average2 = ADC_SumAPot2 / 10;
+	ADC_SumAPot2 = 0;
+	setposition = (ADC_Average2 * 360.00) / 4095.00;
+//	setposition2 = (ADC_Average2 * 360.00) / 4095.00;
+}
 
 void MotorControl()
 {
@@ -756,8 +844,8 @@ void MotorControl()
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
 		DutyCycle = ((Vfeedback * 4899.00) / 20.00) + 100;
 		if (DutyCycle > 4999) DutyCycle = 4999;
-		else if (DutyCycle < 1700) DutyCycle = 0;
-		else if (DutyCycle < 1800) DutyCycle = 1800;
+		else if (DutyCycle < 1600) DutyCycle = 0;
+		else if (DutyCycle < 1700) DutyCycle = 1800;
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 	else
@@ -766,8 +854,8 @@ void MotorControl()
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 0);
 		DutyCycle = ((Vfeedback * 4899.00) / 20.00) - 100;
 		if (DutyCycle < -4999) DutyCycle = -4999;
-		else if (DutyCycle > -1700) DutyCycle = 0;
-		else if (DutyCycle > -1800) DutyCycle = -1800;
+		else if (DutyCycle > -1600) DutyCycle = 0;
+		else if (DutyCycle > -1700) DutyCycle = -1800;
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 }
