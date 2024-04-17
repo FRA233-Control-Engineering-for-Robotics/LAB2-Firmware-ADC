@@ -59,7 +59,7 @@ uint64_t currentTime;
 uint64_t currentTimeLED;
 
 //ADC Poten Read
-uint16_t ADCBuffer[20] = {0};
+uint16_t ADCBuffer[200] = {0};
 //uint16_t ADCBuffer2[10] = {0};
 int ADC_Average[2] = {0};
 int ADC_SumAPot[2] = {0};
@@ -75,6 +75,15 @@ float DutyCycle2;
 
 uint16_t A;
 uint16_t B;
+
+float P;
+float I;
+float D;
+
+float P2;
+float I2;
+float D2;
+
 
 //PID Const
 arm_pid_instance_f32 PID = {0};
@@ -194,23 +203,27 @@ int main(void)
   HAL_TIM_Encoder_Start(&htim4,TIM_CHANNEL_ALL);
 
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-  HAL_ADC_Start_DMA(&hadc1, ADCBuffer, 20);
+  HAL_ADC_Start_DMA(&hadc1, ADCBuffer, 200);
 //  HAL_ADC_Start_DMA(&hadc3, ADCBuffer2, 10);
 //  HAL_ADC_Start_IT(&hadc2);
 
   // PID Parameter for L298N Motor
-  PID.Kp = 3.33;
-  PID.Ki = 0.0667;;
-  PID.Kd = 0.0;
+  PID.Kp = 0.06;
+  PID.Ki = 0.00005;
+  PID.Kd = 0.03;
   arm_pid_init_f32(&PID, 0);
 
   // PID Parameter for DRV8833 Motor
 //  PID2.Kp = 0.18;
 //  PID2.Ki = 0.00000;;
 //  PID2.Kd = 0.3;
-  PID2.Kp = 0.1;
-  PID2.Ki = 0.00000;;
-  PID2.Kd = 0.05;
+//  PID2.Kp = 0.1;
+//  PID2.Ki = 0.00000;;
+//  PID2.Kd = 0.05;
+
+  PID2.Kp = 0.18;
+  PID2.Ki = 0.0;
+  PID2.Kd = 0.3;
   arm_pid_init_f32(&PID2, 0);
 
   UARTInterruptConfig();
@@ -234,6 +247,10 @@ int main(void)
 
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
 			  MotorControl(); //L298N
+//			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
+//			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
+//			  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(A));
+
 		  }
 	  }
 
@@ -284,7 +301,7 @@ int main(void)
 		  }
 		  if(currentTimeLED > timestampLED) //LED Constance Frequency 0.5 s
 		  {
-			  timestampLED = currentTime + 500; //us
+			  timestampLED = currentTime + 250000; //us
 			  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 		  }
 
@@ -753,7 +770,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void ADC_Averaged()
 {
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < 100; i++)
 	{
 		ADC_SumAPot[0] += ADCBuffer[2*i];
 		ADC_SumAPot[1] += ADCBuffer[1+(2*i)];
@@ -761,7 +778,7 @@ void ADC_Averaged()
 
 	for (int i = 0; i < 2; i++)
 	{
-		ADC_Average[i] = ADC_SumAPot[i] / 10;
+		ADC_Average[i] = ADC_SumAPot[i] / 100;
 		ADC_SumAPot[i] = 0;
 	}
 
@@ -785,38 +802,51 @@ void ADC_Averaged()
 
 void MotorControl()
 {
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, 0);
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, 0);
+
 	ADC_Averaged();
-	Vfeedback = arm_pid_f32(&PID2, setposition - Degrees_Position);
+
+	Vfeedback = arm_pid_f32(&PID, setposition - Degrees_Position);
 
 	if (Vfeedback >= 0)
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
-		DutyCycle = ((Vfeedback * 4899.00) / 20.00) + 100;
+		DutyCycle = ((Vfeedback * 4899.00) / 7.00) + 100;
+
 		if (DutyCycle > 4999) DutyCycle = 4999;
-		else if (DutyCycle < 1600) DutyCycle = 0;
-		else if (DutyCycle < 1700) DutyCycle = 1800;
+		else if (DutyCycle < 1800) DutyCycle = 0;
+//		else if (DutyCycle < 1700) DutyCycle = 1800;
+		else if (DutyCycle < 2300) DutyCycle = 2600;
+
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 	else
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 1);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 0);
-		DutyCycle = ((Vfeedback * 4899.00) / 20.00) - 100;
+		DutyCycle = ((Vfeedback * 4899.00) / 7.00) - 100;
+
 		if (DutyCycle < -4999) DutyCycle = -4999;
-		else if (DutyCycle > -1600) DutyCycle = 0;
-		else if (DutyCycle > -1700) DutyCycle = -1800;
+		else if (DutyCycle > -1800) DutyCycle = 0;
+//		else if (DutyCycle > -1700) DutyCycle = -1800;
+		else if (DutyCycle > -2300) DutyCycle = -2600;
+
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 }
 
 void MotorControl2()
 {
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, 0);
+
 	ADC_Averaged();
+
 	QEIReadRaw = __HAL_TIM_GET_COUNTER(&htim4);
 	Degrees_Position2 = (QEIReadRaw * 360.00) / 3072.00;
 
-	Vfeedback2 = arm_pid_f32(&PID, setposition2 - Degrees_Position2);
+	Vfeedback2 = arm_pid_f32(&PID2, setposition2 - Degrees_Position2);
 
 	if (Vfeedback2 > 1500) Vfeedback2 = 1500;
 	else if (Vfeedback2 < -1500) Vfeedback2 = -1500;
@@ -827,10 +857,10 @@ void MotorControl2()
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, 0);
 
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
-		DutyCycle2 = ((Vfeedback2 * 4799.00) / 1500.00) + 200;
+		DutyCycle2 = ((Vfeedback2 * 4799.00) / 20.00) + 200;
 		if (DutyCycle2 > 4999) DutyCycle2 = 4999;
 
-		if (fabs(setposition2 - Degrees_Position2) <= 1) DutyCycle2 = 0;
+		if (fabs(setposition2 - Degrees_Position2) <= 1.5) DutyCycle2 = 0;
 
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, fabs(DutyCycle2));
 	}
@@ -838,10 +868,10 @@ void MotorControl2()
 	{
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, 0);
 
-		DutyCycle2 = ((Vfeedback2 * 4799.00) / 1500.00) - 200;
+		DutyCycle2 = ((Vfeedback2 * 4799.00) / 20.00) - 200;
 		if (DutyCycle2 < -4999) DutyCycle2 = -4999;
 
-		if (fabs(setposition2 - Degrees_Position2) <= 1) DutyCycle2 = 0;
+		if (fabs(setposition2 - Degrees_Position2) <= 1.5) DutyCycle2 = 0;
 
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, fabs(DutyCycle2));
 	}
@@ -849,7 +879,11 @@ void MotorControl2()
 
 void MotorControl3()
 {
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, 0);
+	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, 0);
+
 	ADC_Averaged();
+
 	if (PWMDrive >= 0)
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
