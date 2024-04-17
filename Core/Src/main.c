@@ -982,6 +982,7 @@ void MotorControl3()
 //		else if (DutyCycle < 1800) DutyCycle = 0;
 //		else if (DutyCycle < 2300) DutyCycle = 2300;
 //		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
+		//
 		__HAL_TIM_SET_COMPARE(&htim15, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 	else
