@@ -75,8 +75,8 @@ all: main-build
 main-build: LAB2-Firmware-ADC.elf secondary-outputs
 
 # Tool invocations
-LAB2-Firmware-ADC.elf LAB2-Firmware-ADC.map: $(OBJS) $(USER_OBJS) C:\Users\AAA\Downloads\LAB2-Firmware-ADC\STM32G474RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "LAB2-Firmware-ADC.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\AAA\Downloads\LAB2-Firmware-ADC\STM32G474RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LAB2-Firmware-ADC.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+LAB2-Firmware-ADC.elf LAB2-Firmware-ADC.map: $(OBJS) $(USER_OBJS) C:\Users\Qzider\STM32CubeIDE\workspace_1.13.2\LAB2-Firmware-ADC\STM32G474RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "LAB2-Firmware-ADC.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Qzider\STM32CubeIDE\workspace_1.13.2\LAB2-Firmware-ADC\STM32G474RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LAB2-Firmware-ADC.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

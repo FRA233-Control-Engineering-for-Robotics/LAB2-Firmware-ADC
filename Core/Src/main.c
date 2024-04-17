@@ -63,6 +63,10 @@ uint16_t ADCBuffer[50] = {0};
 //uint16_t ADCBuffer2[10] = {0};
 int ADC_Average[2] = {0};
 int ADC_SumAPot[2] = {0};
+int ADC_Old;
+int turn;
+int WrapUp_ADC;
+uint64_t timee;
 //int ADC_Average2 = 0;
 //int ADC_SumAPot2 = 0;
 
@@ -89,11 +93,10 @@ float D2;
 arm_pid_instance_f32 PID = {0};
 arm_pid_instance_f32 PID2 = {0};
 
-float setposition = 90;
+float setposition;
 float Vfeedback = 0;
 
-float setposition2 = 90;
-float setposition20 = 90;
+float setposition2;
 float Vfeedback2 = 0;
 
 uint32_t QEIReadRaw;
@@ -209,7 +212,7 @@ int main(void)
 
   // PID Parameter for L298N Motor
   PID.Kp = 0.06;
-  PID.Ki = 0.00005;
+  PID.Ki = 0.0000;//0.00005
   PID.Kd = 0.03;
   arm_pid_init_f32(&PID, 0);
 
@@ -237,14 +240,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
 	  if (state == 0) //L298N Driver Control
 	  {
 		  static uint32_t timestamp = 0;
+
 		  if(timestamp < HAL_GetTick())
 		  {
 			  timestamp = HAL_GetTick() + 1; //1000 Hz
-
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
 			  MotorControl(); //L298N
 //			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
@@ -252,6 +254,7 @@ int main(void)
 //			  __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(A));
 
 		  }
+
 	  }
 
 	  else if (state == 1) //DRV8833 Driver Control
@@ -260,7 +263,6 @@ int main(void)
 		  if(timestamp < HAL_GetTick())
 		  {
 			  timestamp = HAL_GetTick() + 1;//1000 Hz
-
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 0);
 			  MotorControl2(); //DRV8833
 		  }
@@ -781,10 +783,19 @@ void ADC_Averaged()
 		ADC_Average[i] = ADC_SumAPot[i] / 25;
 		ADC_SumAPot[i] = 0;
 	}
+//	static uint64_t timestamp3 = 0;
+//	timee = micros();
+//	 if(timestamp3 < timee)
+//  {
+//  timestamp3 = timee + 50; //1000 Hz
 
+//  }
+	WrapUp_ADC = ADC_Average[0]+(turn*4096);
+//	Degrees_Position = (ADC_Average[0] * 360.00) / 4095.00;
 	Degrees_Position = (ADC_Average[0] * 360.00) / 4095.00;
 	setposition = (ADC_Average[1] * 360.00) / 4095.00;
 	setposition2 = (ADC_Average[1] * 360.00) / 4095.00;
+
 }
 
 //void ADC_Averaged2()
