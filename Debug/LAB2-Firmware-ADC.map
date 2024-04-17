@@ -8772,7 +8772,7 @@ LOAD C:/ST/STM32CubeIDE_1.14.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
  .igot.plt      0x20000018        0x0 C:/ST/STM32CubeIDE_1.14.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.100.202403111256/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/thumb/v7e-m+fp/hard/crtbegin.o
                 0x20000018                        . = ALIGN (0x4)
 
-.bss            0x20000018      0x4f8 load address 0x08009674
+.bss            0x20000018      0x3c8 load address 0x08009674
                 0x20000018                        _sbss = .
                 0x20000018                        __bss_start__ = _sbss
  *(.bss)
@@ -8803,77 +8803,76 @@ LOAD C:/ST/STM32CubeIDE_1.14.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
                 0x200002d0        0x8 ./Core/Src/main.o
                 0x200002d0                currentTimeLED
  .bss.ADCBuffer
-                0x200002d8      0x190 ./Core/Src/main.o
+                0x200002d8       0x64 ./Core/Src/main.o
                 0x200002d8                ADCBuffer
  .bss.ADC_Average
-                0x20000468        0x8 ./Core/Src/main.o
-                0x20000468                ADC_Average
+                0x2000033c        0x8 ./Core/Src/main.o
+                0x2000033c                ADC_Average
  .bss.ADC_SumAPot
-                0x20000470        0x8 ./Core/Src/main.o
-                0x20000470                ADC_SumAPot
+                0x20000344        0x8 ./Core/Src/main.o
+                0x20000344                ADC_SumAPot
  .bss.Degrees_Position
-                0x20000478        0x4 ./Core/Src/main.o
-                0x20000478                Degrees_Position
+                0x2000034c        0x4 ./Core/Src/main.o
+                0x2000034c                Degrees_Position
  .bss.DutyCycle
-                0x2000047c        0x4 ./Core/Src/main.o
-                0x2000047c                DutyCycle
+                0x20000350        0x4 ./Core/Src/main.o
+                0x20000350                DutyCycle
  .bss.Degrees_Position2
-                0x20000480        0x4 ./Core/Src/main.o
-                0x20000480                Degrees_Position2
+                0x20000354        0x4 ./Core/Src/main.o
+                0x20000354                Degrees_Position2
  .bss.DutyCycle2
-                0x20000484        0x4 ./Core/Src/main.o
-                0x20000484                DutyCycle2
- .bss.PID       0x20000488       0x24 ./Core/Src/main.o
-                0x20000488                PID
- .bss.PID2      0x200004ac       0x24 ./Core/Src/main.o
-                0x200004ac                PID2
+                0x20000358        0x4 ./Core/Src/main.o
+                0x20000358                DutyCycle2
+ .bss.PID       0x2000035c       0x24 ./Core/Src/main.o
+                0x2000035c                PID
+ .bss.PID2      0x20000380       0x24 ./Core/Src/main.o
+                0x20000380                PID2
  .bss.Vfeedback
-                0x200004d0        0x4 ./Core/Src/main.o
-                0x200004d0                Vfeedback
+                0x200003a4        0x4 ./Core/Src/main.o
+                0x200003a4                Vfeedback
  .bss.Vfeedback2
-                0x200004d4        0x4 ./Core/Src/main.o
-                0x200004d4                Vfeedback2
+                0x200003a8        0x4 ./Core/Src/main.o
+                0x200003a8                Vfeedback2
  .bss.QEIReadRaw
-                0x200004d8        0x4 ./Core/Src/main.o
-                0x200004d8                QEIReadRaw
- .bss.Rx        0x200004dc        0x5 ./Core/Src/main.o
-                0x200004dc                Rx
- *fill*         0x200004e1        0x3 
- .bss.PWMDrive  0x200004e4        0x4 ./Core/Src/main.o
-                0x200004e4                PWMDrive
+                0x200003ac        0x4 ./Core/Src/main.o
+                0x200003ac                QEIReadRaw
+ .bss.Rx        0x200003b0        0x5 ./Core/Src/main.o
+                0x200003b0                Rx
+ *fill*         0x200003b5        0x3 
+ .bss.PWMDrive  0x200003b8        0x4 ./Core/Src/main.o
+                0x200003b8                PWMDrive
  .bss.dataBytes
-                0x200004e8        0x4 ./Core/Src/main.o
-                0x200004e8                dataBytes
- *fill*         0x200004ec        0x4 
- .bss._micros   0x200004f0        0x8 ./Core/Src/main.o
-                0x200004f0                _micros
+                0x200003bc        0x4 ./Core/Src/main.o
+                0x200003bc                dataBytes
+ .bss._micros   0x200003c0        0x8 ./Core/Src/main.o
+                0x200003c0                _micros
  .bss.timestamp.4
-                0x200004f8        0x4 ./Core/Src/main.o
+                0x200003c8        0x4 ./Core/Src/main.o
  .bss.timestamp.3
-                0x200004fc        0x4 ./Core/Src/main.o
+                0x200003cc        0x4 ./Core/Src/main.o
  .bss.timestamp2.2
-                0x20000500        0x4 ./Core/Src/main.o
+                0x200003d0        0x4 ./Core/Src/main.o
  .bss.timestampMOR.1
-                0x20000504        0x4 ./Core/Src/main.o
+                0x200003d4        0x4 ./Core/Src/main.o
  .bss.timestampLED.0
-                0x20000508        0x4 ./Core/Src/main.o
- .bss.uwTick    0x2000050c        0x4 ./Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.o
-                0x2000050c                uwTick
+                0x200003d8        0x4 ./Core/Src/main.o
+ .bss.uwTick    0x200003dc        0x4 ./Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.o
+                0x200003dc                uwTick
  *(COMMON)
-                0x20000510                        . = ALIGN (0x4)
-                0x20000510                        _ebss = .
-                0x20000510                        __bss_end__ = _ebss
+                0x200003e0                        . = ALIGN (0x4)
+                0x200003e0                        _ebss = .
+                0x200003e0                        __bss_end__ = _ebss
 
 ._user_heap_stack
-                0x20000510      0x600 load address 0x08009674
-                0x20000510                        . = ALIGN (0x8)
+                0x200003e0      0x600 load address 0x08009674
+                0x200003e0                        . = ALIGN (0x8)
                 [!provide]                        PROVIDE (end = .)
-                0x20000510                        PROVIDE (_end = .)
-                0x20000710                        . = (. + _Min_Heap_Size)
- *fill*         0x20000510      0x200 
-                0x20000b10                        . = (. + _Min_Stack_Size)
- *fill*         0x20000710      0x400 
-                0x20000b10                        . = ALIGN (0x8)
+                0x200003e0                        PROVIDE (_end = .)
+                0x200005e0                        . = (. + _Min_Heap_Size)
+ *fill*         0x200003e0      0x200 
+                0x200009e0                        . = (. + _Min_Stack_Size)
+ *fill*         0x200005e0      0x400 
+                0x200009e0                        . = ALIGN (0x8)
 
 /DISCARD/
  libc.a(*)

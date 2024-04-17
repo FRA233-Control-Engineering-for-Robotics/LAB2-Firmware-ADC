@@ -59,7 +59,7 @@ uint64_t currentTime;
 uint64_t currentTimeLED;
 
 //ADC Poten Read
-uint16_t ADCBuffer[200] = {0};
+uint16_t ADCBuffer[50] = {0};
 //uint16_t ADCBuffer2[10] = {0};
 int ADC_Average[2] = {0};
 int ADC_SumAPot[2] = {0};
@@ -203,7 +203,7 @@ int main(void)
   HAL_TIM_Encoder_Start(&htim4,TIM_CHANNEL_ALL);
 
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-  HAL_ADC_Start_DMA(&hadc1, ADCBuffer, 200);
+  HAL_ADC_Start_DMA(&hadc1, ADCBuffer, 50);
 //  HAL_ADC_Start_DMA(&hadc3, ADCBuffer2, 10);
 //  HAL_ADC_Start_IT(&hadc2);
 
@@ -770,7 +770,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void ADC_Averaged()
 {
-	for (int i = 0; i < 100; i++)
+	for (int i = 0; i < 25; i++)
 	{
 		ADC_SumAPot[0] += ADCBuffer[2*i];
 		ADC_SumAPot[1] += ADCBuffer[1+(2*i)];
@@ -778,7 +778,7 @@ void ADC_Averaged()
 
 	for (int i = 0; i < 2; i++)
 	{
-		ADC_Average[i] = ADC_SumAPot[i] / 100;
+		ADC_Average[i] = ADC_SumAPot[i] / 25;
 		ADC_SumAPot[i] = 0;
 	}
 
@@ -888,26 +888,26 @@ void MotorControl3()
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
-		DutyCycle = ((PWMDrive * 4899.00) / 5000.00) + 100;
+		DutyCycle = ((PWMDrive * 4899.00) / 2500.00) + 100;
 //		if (PWMDrive > 4999) PWMDrive = 4999;
 //		else if (PWMDrive < 1250) PWMDrive = 0;
 //		else if (PWMDrive < 1800) PWMDrive = 1900;
 		if (DutyCycle > 4999) DutyCycle = 4999;
-		else if (DutyCycle < 1000) DutyCycle = 0;
-		else if (DutyCycle < 1800) DutyCycle = 1800;
+		else if (DutyCycle < 1800) DutyCycle = 0;
+		else if (DutyCycle < 2300) DutyCycle = 2300;
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 	else
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 1);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 0);
-		DutyCycle = ((PWMDrive * 4899.00) / 5000.00) - 100;
+		DutyCycle = ((PWMDrive * 4899.00) / 2500.00) - 100;
 //		if (PWMDrive < -4999) PWMDrive = -4999;
 //		else if (PWMDrive > -1250) PWMDrive = 0;
 //		else if (PWMDrive > -1800) PWMDrive = -1900;
 		if (DutyCycle < -4999) DutyCycle = -4999;
-		else if (DutyCycle > -1000) DutyCycle = 0;
-		else if (DutyCycle > -1800) DutyCycle = -1800;
+		else if (DutyCycle > -1800) DutyCycle = 0;
+		else if (DutyCycle > -2300) DutyCycle = -2300;
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 }

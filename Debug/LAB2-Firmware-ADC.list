@@ -21,9 +21,9 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, ALLOC, LOAD, DATA
   8 .data         00000018  20000000  0800965c  0000b000  2**2
                   CONTENTS, ALLOC, LOAD, DATA
-  9 .bss          000004f8  20000018  08009674  0000b018  2**3
+  9 .bss          000003c8  20000018  08009674  0000b018  2**3
                   ALLOC
- 10 ._user_heap_stack 00000600  20000510  08009674  0000b510  2**0
+ 10 ._user_heap_stack 00000600  200003e0  08009674  0000b3e0  2**0
                   ALLOC
  11 .ARM.attributes 00000030  00000000  00000000  0000b018  2**0
                   CONTENTS, READONLY
@@ -1123,8 +1123,8 @@ int main(void)
  8000dea:	217f      	movs	r1, #127	@ 0x7f
  8000dec:	4877      	ldr	r0, [pc, #476]	@ (8000fcc <main+0x248>)
  8000dee:	f002 ff67 	bl	8003cc0 <HAL_ADCEx_Calibration_Start>
-  HAL_ADC_Start_DMA(&hadc1, ADCBuffer, 200);
- 8000df2:	22c8      	movs	r2, #200	@ 0xc8
+  HAL_ADC_Start_DMA(&hadc1, ADCBuffer, 50);
+ 8000df2:	2232      	movs	r2, #50	@ 0x32
  8000df4:	4976      	ldr	r1, [pc, #472]	@ (8000fd0 <main+0x24c>)
  8000df6:	4875      	ldr	r0, [pc, #468]	@ (8000fcc <main+0x248>)
  8000df8:	f002 f854 	bl	8002ea4 <HAL_ADC_Start_DMA>
@@ -1408,29 +1408,29 @@ int main(void)
  8000fc8:	20000278 	.word	0x20000278
  8000fcc:	20000034 	.word	0x20000034
  8000fd0:	200002d8 	.word	0x200002d8
- 8000fd4:	20000488 	.word	0x20000488
+ 8000fd4:	2000035c 	.word	0x2000035c
  8000fd8:	3d75c28f 	.word	0x3d75c28f
  8000fdc:	3851b717 	.word	0x3851b717
  8000fe0:	3cf5c28f 	.word	0x3cf5c28f
- 8000fe4:	200004ac 	.word	0x200004ac
+ 8000fe4:	20000380 	.word	0x20000380
  8000fe8:	3e3851ec 	.word	0x3e3851ec
  8000fec:	3e99999a 	.word	0x3e99999a
- 8000ff0:	200004f0 	.word	0x200004f0
+ 8000ff0:	200003c0 	.word	0x200003c0
  8000ff4:	200002c4 	.word	0x200002c4
- 8000ff8:	200004f8 	.word	0x200004f8
- 8000ffc:	200004fc 	.word	0x200004fc
+ 8000ff8:	200003c8 	.word	0x200003c8
+ 8000ffc:	200003cc 	.word	0x200003cc
  8001000:	200002c8 	.word	0x200002c8
  8001004:	200002d0 	.word	0x200002d0
- 8001008:	200004dc 	.word	0x200004dc
- 800100c:	200004e4 	.word	0x200004e4
- 8001010:	20000500 	.word	0x20000500
- 8001014:	20000468 	.word	0x20000468
+ 8001008:	200003b0 	.word	0x200003b0
+ 800100c:	200003b8 	.word	0x200003b8
+ 8001010:	200003d0 	.word	0x200003d0
+ 8001014:	2000033c 	.word	0x2000033c
  8001018:	2000000a 	.word	0x2000000a
  800101c:	20000008 	.word	0x20000008
- 8001020:	200004e8 	.word	0x200004e8
+ 8001020:	200003bc 	.word	0x200003bc
  8001024:	20000100 	.word	0x20000100
- 8001028:	20000504 	.word	0x20000504
- 800102c:	20000508 	.word	0x20000508
+ 8001028:	200003d4 	.word	0x200003d4
+ 800102c:	200003d8 	.word	0x200003d8
 
 08001030 <SystemClock_Config>:
 /**
@@ -2641,7 +2641,7 @@ void ADC_Averaged()
  8001718:	b580      	push	{r7, lr}
  800171a:	b082      	sub	sp, #8
  800171c:	af00      	add	r7, sp, #0
-	for (int i = 0; i < 100; i++)
+	for (int i = 0; i < 25; i++)
  800171e:	2300      	movs	r3, #0
  8001720:	607b      	str	r3, [r7, #4]
  8001722:	e017      	b.n	8001754 <ADC_Averaged+0x3c>
@@ -2667,12 +2667,12 @@ void ADC_Averaged()
  8001748:	4413      	add	r3, r2
  800174a:	4a41      	ldr	r2, [pc, #260]	@ (8001850 <ADC_Averaged+0x138>)
  800174c:	6053      	str	r3, [r2, #4]
-	for (int i = 0; i < 100; i++)
+	for (int i = 0; i < 25; i++)
  800174e:	687b      	ldr	r3, [r7, #4]
  8001750:	3301      	adds	r3, #1
  8001752:	607b      	str	r3, [r7, #4]
  8001754:	687b      	ldr	r3, [r7, #4]
- 8001756:	2b63      	cmp	r3, #99	@ 0x63
+ 8001756:	2b18      	cmp	r3, #24
  8001758:	dde4      	ble.n	8001724 <ADC_Averaged+0xc>
 	}
 
@@ -2681,13 +2681,13 @@ void ADC_Averaged()
  800175c:	603b      	str	r3, [r7, #0]
  800175e:	e015      	b.n	800178c <ADC_Averaged+0x74>
 	{
-		ADC_Average[i] = ADC_SumAPot[i] / 100;
+		ADC_Average[i] = ADC_SumAPot[i] / 25;
  8001760:	4a3b      	ldr	r2, [pc, #236]	@ (8001850 <ADC_Averaged+0x138>)
  8001762:	683b      	ldr	r3, [r7, #0]
  8001764:	f852 3023 	ldr.w	r3, [r2, r3, lsl #2]
  8001768:	4a3b      	ldr	r2, [pc, #236]	@ (8001858 <ADC_Averaged+0x140>)
  800176a:	fb82 1203 	smull	r1, r2, r2, r3
- 800176e:	1152      	asrs	r2, r2, #5
+ 800176e:	10d2      	asrs	r2, r2, #3
  8001770:	17db      	asrs	r3, r3, #31
  8001772:	1ad2      	subs	r2, r2, r3
  8001774:	4939      	ldr	r1, [pc, #228]	@ (800185c <ADC_Averaged+0x144>)
@@ -2785,12 +2785,12 @@ void ADC_Averaged()
  8001844:	f3af 8000 	nop.w
  8001848:	00000000 	.word	0x00000000
  800184c:	40affe00 	.word	0x40affe00
- 8001850:	20000470 	.word	0x20000470
+ 8001850:	20000344 	.word	0x20000344
  8001854:	200002d8 	.word	0x200002d8
  8001858:	51eb851f 	.word	0x51eb851f
- 800185c:	20000468 	.word	0x20000468
+ 800185c:	2000033c 	.word	0x2000033c
  8001860:	40768000 	.word	0x40768000
- 8001864:	20000478 	.word	0x20000478
+ 8001864:	2000034c 	.word	0x2000034c
  8001868:	20000000 	.word	0x20000000
  800186c:	20000004 	.word	0x20000004
 
@@ -3068,12 +3068,12 @@ void MotorControl()
  8001ac4:	40b32300 	.word	0x40b32300
  8001ac8:	20000278 	.word	0x20000278
  8001acc:	20000000 	.word	0x20000000
- 8001ad0:	20000478 	.word	0x20000478
- 8001ad4:	20000488 	.word	0x20000488
- 8001ad8:	200004d0 	.word	0x200004d0
+ 8001ad0:	2000034c 	.word	0x2000034c
+ 8001ad4:	2000035c 	.word	0x2000035c
+ 8001ad8:	200003a4 	.word	0x200003a4
  8001adc:	401c0000 	.word	0x401c0000
  8001ae0:	40590000 	.word	0x40590000
- 8001ae4:	2000047c 	.word	0x2000047c
+ 8001ae4:	20000350 	.word	0x20000350
  8001ae8:	459c3800 	.word	0x459c3800
  8001aec:	459c3800 	.word	0x459c3800
  8001af0:	44e10000 	.word	0x44e10000
@@ -3374,20 +3374,20 @@ void MotorControl2()
  8001d9c:	40b2bf00 	.word	0x40b2bf00
  8001da0:	20000278 	.word	0x20000278
  8001da4:	200001e0 	.word	0x200001e0
- 8001da8:	200004d8 	.word	0x200004d8
+ 8001da8:	200003ac 	.word	0x200003ac
  8001dac:	40768000 	.word	0x40768000
  8001db0:	40a80000 	.word	0x40a80000
- 8001db4:	20000480 	.word	0x20000480
+ 8001db4:	20000354 	.word	0x20000354
  8001db8:	20000004 	.word	0x20000004
- 8001dbc:	200004ac 	.word	0x200004ac
- 8001dc0:	200004d4 	.word	0x200004d4
+ 8001dbc:	20000380 	.word	0x20000380
+ 8001dc0:	200003a8 	.word	0x200003a8
  8001dc4:	44bb8000 	.word	0x44bb8000
  8001dc8:	44bb8000 	.word	0x44bb8000
  8001dcc:	c4bb8000 	.word	0xc4bb8000
  8001dd0:	c4bb8000 	.word	0xc4bb8000
  8001dd4:	40340000 	.word	0x40340000
  8001dd8:	40690000 	.word	0x40690000
- 8001ddc:	20000484 	.word	0x20000484
+ 8001ddc:	20000358 	.word	0x20000358
  8001de0:	459c3800 	.word	0x459c3800
  8001de4:	459c3800 	.word	0x459c3800
  8001de8:	c59c3800 	.word	0xc59c3800
@@ -3429,7 +3429,7 @@ void MotorControl3()
  8001e20:	f44f 5180 	mov.w	r1, #4096	@ 0x1000
  8001e24:	f04f 4090 	mov.w	r0, #1207959552	@ 0x48000000
  8001e28:	f002 fe78 	bl	8004b1c <HAL_GPIO_WritePin>
-		DutyCycle = ((PWMDrive * 4899.00) / 5000.00) + 100;
+		DutyCycle = ((PWMDrive * 4899.00) / 2500.00) + 100;
  8001e2c:	4b69      	ldr	r3, [pc, #420]	@ (8001fd4 <MotorControl3+0x1e4>)
  8001e2e:	681b      	ldr	r3, [r3, #0]
  8001e30:	4618      	mov	r0, r3
@@ -3473,7 +3473,7 @@ void MotorControl3()
  8001e8c:	4a55      	ldr	r2, [pc, #340]	@ (8001fe4 <MotorControl3+0x1f4>)
  8001e8e:	601a      	str	r2, [r3, #0]
  8001e90:	e01b      	b.n	8001eca <MotorControl3+0xda>
-		else if (DutyCycle < 1000) DutyCycle = 0;
+		else if (DutyCycle < 1800) DutyCycle = 0;
  8001e92:	4b52      	ldr	r3, [pc, #328]	@ (8001fdc <MotorControl3+0x1ec>)
  8001e94:	edd3 7a00 	vldr	s15, [r3]
  8001e98:	ed9f 7a53 	vldr	s14, [pc, #332]	@ 8001fe8 <MotorControl3+0x1f8>
@@ -3484,7 +3484,7 @@ void MotorControl3()
  8001ea8:	f04f 0200 	mov.w	r2, #0
  8001eac:	601a      	str	r2, [r3, #0]
  8001eae:	e00c      	b.n	8001eca <MotorControl3+0xda>
-		else if (DutyCycle < 1800) DutyCycle = 1800;
+		else if (DutyCycle < 2300) DutyCycle = 2300;
  8001eb0:	4b4a      	ldr	r3, [pc, #296]	@ (8001fdc <MotorControl3+0x1ec>)
  8001eb2:	edd3 7a00 	vldr	s15, [r3]
  8001eb6:	ed9f 7a4d 	vldr	s14, [pc, #308]	@ 8001fec <MotorControl3+0x1fc>
@@ -3504,8 +3504,8 @@ void MotorControl3()
  8001edc:	ee17 2a90 	vmov	r2, s15
  8001ee0:	635a      	str	r2, [r3, #52]	@ 0x34
 		if (DutyCycle < -4999) DutyCycle = -4999;
-		else if (DutyCycle > -1000) DutyCycle = 0;
-		else if (DutyCycle > -1800) DutyCycle = -1800;
+		else if (DutyCycle > -1800) DutyCycle = 0;
+		else if (DutyCycle > -2300) DutyCycle = -2300;
 		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 }
@@ -3520,7 +3520,7 @@ void MotorControl3()
  8001ef4:	f44f 5180 	mov.w	r1, #4096	@ 0x1000
  8001ef8:	f04f 4090 	mov.w	r0, #1207959552	@ 0x48000000
  8001efc:	f002 fe0e 	bl	8004b1c <HAL_GPIO_WritePin>
-		DutyCycle = ((PWMDrive * 4899.00) / 5000.00) - 100;
+		DutyCycle = ((PWMDrive * 4899.00) / 2500.00) - 100;
  8001f00:	4b34      	ldr	r3, [pc, #208]	@ (8001fd4 <MotorControl3+0x1e4>)
  8001f02:	681b      	ldr	r3, [r3, #0]
  8001f04:	4618      	mov	r0, r3
@@ -3561,7 +3561,7 @@ void MotorControl3()
  8001f60:	4a25      	ldr	r2, [pc, #148]	@ (8001ff8 <MotorControl3+0x208>)
  8001f62:	601a      	str	r2, [r3, #0]
  8001f64:	e01b      	b.n	8001f9e <MotorControl3+0x1ae>
-		else if (DutyCycle > -1000) DutyCycle = 0;
+		else if (DutyCycle > -1800) DutyCycle = 0;
  8001f66:	4b1d      	ldr	r3, [pc, #116]	@ (8001fdc <MotorControl3+0x1ec>)
  8001f68:	edd3 7a00 	vldr	s15, [r3]
  8001f6c:	ed9f 7a23 	vldr	s14, [pc, #140]	@ 8001ffc <MotorControl3+0x20c>
@@ -3572,7 +3572,7 @@ void MotorControl3()
  8001f7c:	f04f 0200 	mov.w	r2, #0
  8001f80:	601a      	str	r2, [r3, #0]
  8001f82:	e00c      	b.n	8001f9e <MotorControl3+0x1ae>
-		else if (DutyCycle > -1800) DutyCycle = -1800;
+		else if (DutyCycle > -2300) DutyCycle = -2300;
  8001f84:	4b15      	ldr	r3, [pc, #84]	@ (8001fdc <MotorControl3+0x1ec>)
  8001f86:	edd3 7a00 	vldr	s15, [r3]
  8001f8a:	ed9f 7a1d 	vldr	s14, [pc, #116]	@ 8002000 <MotorControl3+0x210>
@@ -3599,21 +3599,21 @@ void MotorControl3()
  8001fc0:	00000000 	.word	0x00000000
  8001fc4:	40b32300 	.word	0x40b32300
  8001fc8:	00000000 	.word	0x00000000
- 8001fcc:	40b38800 	.word	0x40b38800
+ 8001fcc:	40a38800 	.word	0x40a38800
  8001fd0:	20000278 	.word	0x20000278
- 8001fd4:	200004e4 	.word	0x200004e4
+ 8001fd4:	200003b8 	.word	0x200003b8
  8001fd8:	40590000 	.word	0x40590000
- 8001fdc:	2000047c 	.word	0x2000047c
+ 8001fdc:	20000350 	.word	0x20000350
  8001fe0:	459c3800 	.word	0x459c3800
  8001fe4:	459c3800 	.word	0x459c3800
- 8001fe8:	447a0000 	.word	0x447a0000
- 8001fec:	44e10000 	.word	0x44e10000
- 8001ff0:	44e10000 	.word	0x44e10000
+ 8001fe8:	44e10000 	.word	0x44e10000
+ 8001fec:	450fc000 	.word	0x450fc000
+ 8001ff0:	450fc000 	.word	0x450fc000
  8001ff4:	c59c3800 	.word	0xc59c3800
  8001ff8:	c59c3800 	.word	0xc59c3800
- 8001ffc:	c47a0000 	.word	0xc47a0000
- 8002000:	c4e10000 	.word	0xc4e10000
- 8002004:	c4e10000 	.word	0xc4e10000
+ 8001ffc:	c4e10000 	.word	0xc4e10000
+ 8002000:	c50fc000 	.word	0xc50fc000
+ 8002004:	c50fc000 	.word	0xc50fc000
 
 08002008 <micros>:
 		_micros += UINT32_MAX;
@@ -3645,7 +3645,7 @@ uint64_t micros()
  8002030:	4770      	bx	lr
  8002032:	bf00      	nop
  8002034:	2000022c 	.word	0x2000022c
- 8002038:	200004f0 	.word	0x200004f0
+ 8002038:	200003c0 	.word	0x200003c0
 
 0800203c <UARTInterruptConfig>:
 	QEIdata.Position[OLD] = QEIdata.Position[NEW];
@@ -3665,7 +3665,7 @@ void UARTInterruptConfig()
  800204a:	bf00      	nop
  800204c:	bd80      	pop	{r7, pc}
  800204e:	bf00      	nop
- 8002050:	200004dc 	.word	0x200004dc
+ 8002050:	200003b0 	.word	0x200003b0
  8002054:	20000100 	.word	0x20000100
 
 08002058 <HAL_UART_RxCpltCallback>:
@@ -3699,7 +3699,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
  800207c:	46bd      	mov	sp, r7
  800207e:	bd80      	pop	{r7, pc}
  8002080:	20000100 	.word	0x20000100
- 8002084:	200004dc 	.word	0x200004dc
+ 8002084:	200003b0 	.word	0x200003b0
 
 08002088 <HAL_GPIO_EXTI_Callback>:
 
@@ -4781,7 +4781,7 @@ LoopForever:
   ldr r2, =_sbss
  80025b8:	20000018 	.word	0x20000018
   ldr r4, =_ebss
- 80025bc:	20000510 	.word	0x20000510
+ 80025bc:	200003e0 	.word	0x200003e0
 
 080025c0 <ADC1_2_IRQHandler>:
  * @retval : None
@@ -4955,7 +4955,7 @@ __weak void HAL_IncTick(void)
  800267c:	46bd      	mov	sp, r7
  800267e:	f85d 7b04 	ldr.w	r7, [sp], #4
  8002682:	4770      	bx	lr
- 8002684:	2000050c 	.word	0x2000050c
+ 8002684:	200003dc 	.word	0x200003dc
  8002688:	20000014 	.word	0x20000014
 
 0800268c <HAL_GetTick>:
@@ -4976,7 +4976,7 @@ __weak uint32_t HAL_GetTick(void)
  8002698:	f85d 7b04 	ldr.w	r7, [sp], #4
  800269c:	4770      	bx	lr
  800269e:	bf00      	nop
- 80026a0:	2000050c 	.word	0x2000050c
+ 80026a0:	200003dc 	.word	0x200003dc
 
 080026a4 <LL_ADC_SetCommonClock>:
   *         @arg @ref LL_ADC_CLOCK_ASYNC_DIV128
