@@ -311,7 +311,7 @@ int main(void)
 
 			  if(timestamp2 > 4294967296) timestamp2 = 0; //Counter Reset Overflow
 
-			  dataSend = fabs(ADC_Average[0]);
+			  dataSend = fabs(Degrees_Position);
 
 			  dataBytes[0] = header; // Header byte
 			  dataBytes[1] = (uint8_t)(dataSend & 0xFF); // Lower byte
@@ -1051,18 +1051,14 @@ void MotorControl3()
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
-		DutyCycle = ((PWMDrive * 84999.00) / 2500.00) + 100;
+//		DutyCycle = ((PWMDrive * 84999.00) / 2500.00) + 100;
+//		if (DutyCycle > 84999) DutyCycle = 84999;
+//		else if (DutyCycle < 17000) DutyCycle = 0;
+//		else if (DutyCycle < 18000) DutyCycle = 18000;
+		DutyCycle = ((PWMDrive * 83999.00) / 20.00) + 100;
 		if (DutyCycle > 84999) DutyCycle = 84999;
 		else if (DutyCycle < 17000) DutyCycle = 0;
 		else if (DutyCycle < 18000) DutyCycle = 18000;
-//		DutyCycle = ((PWMDrive * 4899.00) / 2500.00) + 100;
-//		if (PWMDrive > 4999) PWMDrive = 4999;
-//		else if (PWMDrive < 1250) PWMDrive = 0;
-//		else if (PWMDrive < 1800) PWMDrive = 1900;
-//		if (DutyCycle > 4999) DutyCycle = 4999;
-//		else if (DutyCycle < 1800) DutyCycle = 0;
-//		else if (DutyCycle < 2300) DutyCycle = 2300;
-//		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 		//
 		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
@@ -1070,10 +1066,14 @@ void MotorControl3()
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 1);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 0);
-		DutyCycle = ((PWMDrive * 84999.00) / 2500.00) - 100;
+		DutyCycle = ((PWMDrive * 83999.00) / 20.00) - 100;
 		if (DutyCycle < -84999) DutyCycle = -84999;
 		else if (DutyCycle > -17000) DutyCycle = 0;
 		else if (DutyCycle > -18000) DutyCycle = -18000;
+//		DutyCycle = ((PWMDrive * 84999.00) / 2500.00) - 100;
+//		if (DutyCycle < -84999) DutyCycle = -84999;
+//		else if (DutyCycle > -17000) DutyCycle = 0;
+//		else if (DutyCycle > -18000) DutyCycle = -18000;
 //		DutyCycle = ((PWMDrive * 4899.00) / 2500.00) - 100;
 //		if (PWMDrive < -4999) PWMDrive = -4999;
 //		else if (PWMDrive > -1250) PWMDrive = 0;
