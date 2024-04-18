@@ -45,6 +45,7 @@ DMA_HandleTypeDef hdma_adc1;
 
 UART_HandleTypeDef hlpuart1;
 
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
@@ -66,6 +67,8 @@ int ADC_Average[2] = {0};
 int ADC_SumAPot[2] = {0};
 //int ADC_Average2 = 0;
 //int ADC_SumAPot2 = 0;
+int turn;
+int32_t diffPosition;
 
 //Positions Motor
 float Degrees_Position = 0;
@@ -127,6 +130,18 @@ enum
 {
 	NEW,OLD
 };
+
+typedef struct
+{
+	// for record New / Old value to calculate dx / dt
+	uint32_t Position[2];
+	uint64_t TimeStamp[2];
+	float PotenPostion_1turn;
+	float PotenAngularVelocity;
+}
+
+Poten_StructureTypeDef;
+Poten_StructureTypeDef Potendata = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -140,6 +155,7 @@ static void MX_TIM8_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_TIM15_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 void ADC_Averaged();
 void ADC_Averaged2();
@@ -147,6 +163,7 @@ void MotorControl();
 void MotorControl2();
 void MotorControl3();
 void QEIEncoderPosVel_Update();
+void PotenEncoderPosVel_Update();
 void UARTInterruptConfig();
 uint64_t micros();
 /* USER CODE END PFP */
@@ -193,6 +210,7 @@ int main(void)
   MX_TIM4_Init();
   MX_TIM5_Init();
   MX_TIM15_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim3); //DMA Out Event 1000 Hz
   HAL_TIM_Base_Start(&htim4); //QEI Read
@@ -202,7 +220,7 @@ int main(void)
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1); //L298N
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2); //DRV8833 AI1
   HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3); //DRV8833 AI2
-  HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 
   HAL_TIM_Encoder_Start(&htim4,TIM_CHANNEL_ALL);
 
@@ -212,9 +230,12 @@ int main(void)
 //  HAL_ADC_Start_IT(&hadc2);
 
   // PID Parameter for L298N Motor
-  PID.Kp = 0.06;
-  PID.Ki = 0.00005;
-  PID.Kd = 0.03;
+//  PID.Kp = 0.06;
+//  PID.Ki = 0.00005;
+//  PID.Kd = 0.03;
+	PID.Kp = 0.2;
+	PID.Ki = 0.0005;
+	PID.Kd = 0.3;
   arm_pid_init_f32(&PID, 0);
 
   // PID Parameter for DRV8833 Motor
@@ -225,8 +246,8 @@ int main(void)
 //  PID2.Ki = 0.00000;;
 //  PID2.Kd = 0.05;
 
-  PID2.Kp = 0.18;
-  PID2.Ki = 0.0;
+  PID2.Kp = 0.2;
+  PID2.Ki = 0.0000001;
   PID2.Kd = 0.3;
   arm_pid_init_f32(&PID2, 0);
 
@@ -250,7 +271,7 @@ int main(void)
 		  if(timestamp < HAL_GetTick())
 		  {
 			  timestamp = HAL_GetTick() + 1; //1000 Hz
-
+//			  PotenEncoderPosVel_Update();
 			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
 			  MotorControl(); //L298N
 //			  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
@@ -483,6 +504,55 @@ static void MX_LPUART1_UART_Init(void)
   /* USER CODE BEGIN LPUART1_Init 2 */
 
   /* USER CODE END LPUART1_Init 2 */
+
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 84999;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+  HAL_TIM_MspPostInit(&htim2);
 
 }
 
@@ -895,33 +965,44 @@ void MotorControl()
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
-		DutyCycle = ((Vfeedback * 4899.00) / 7.00) + 100;
+		DutyCycle = ((Vfeedback * 83999.00) / 20.00) + 100;
+		if (DutyCycle > 84999) DutyCycle = 84999;
+		else if (DutyCycle < 17000) DutyCycle = 0;
+		else if (DutyCycle < 18000) DutyCycle = 18000;
+//		DutyCycle = ((Vfeedback * 4899.00) / 7.00) + 100;
+//
+//		if (DutyCycle > 4999) DutyCycle = 4999;
+//		else if (DutyCycle < 1800) DutyCycle = 0;
+////		else if (DutyCycle < 1700) DutyCycle = 1800;
+//		else if (DutyCycle < 2300) DutyCycle = 2600;
 
-		if (DutyCycle > 4999) DutyCycle = 4999;
-		else if (DutyCycle < 1800) DutyCycle = 0;
-//		else if (DutyCycle < 1700) DutyCycle = 1800;
-		else if (DutyCycle < 2300) DutyCycle = 2600;
-
-		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
+//		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
+		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 	else
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 1);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 0);
-		DutyCycle = ((Vfeedback * 4899.00) / 7.00) - 100;
+		DutyCycle = ((Vfeedback * 83999.00) / 20.00) - 100;
+		if (DutyCycle < -84999) DutyCycle = -84999;
+		else if (DutyCycle > -17000) DutyCycle = 0;
+		else if (DutyCycle > -18000) DutyCycle = -18000;
+//		DutyCycle = ((Vfeedback * 4899.00) / 7.00) - 100;
+//
+//		if (DutyCycle < -4999) DutyCycle = -4999;
+//		else if (DutyCycle > -1800) DutyCycle = 0;
+////		else if (DutyCycle > -1700) DutyCycle = -1800;
+//		else if (DutyCycle > -2300) DutyCycle = -2600;
 
-		if (DutyCycle < -4999) DutyCycle = -4999;
-		else if (DutyCycle > -1800) DutyCycle = 0;
-//		else if (DutyCycle > -1700) DutyCycle = -1800;
-		else if (DutyCycle > -2300) DutyCycle = -2600;
-
-		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
+//		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
+		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 }
 
 void MotorControl2()
 {
 	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, 0);
+	__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 0);
 
 	ADC_Averaged();
 
@@ -971,7 +1052,7 @@ void MotorControl3()
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 0);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 1);
 		DutyCycle = ((PWMDrive * 84999.00) / 2500.00) + 100;
-		if (PWMDrive > 84999) PWMDrive = 84999;
+		if (DutyCycle > 84999) DutyCycle = 84999;
 		else if (DutyCycle < 17000) DutyCycle = 0;
 		else if (DutyCycle < 18000) DutyCycle = 18000;
 //		DutyCycle = ((PWMDrive * 4899.00) / 2500.00) + 100;
@@ -983,16 +1064,16 @@ void MotorControl3()
 //		else if (DutyCycle < 2300) DutyCycle = 2300;
 //		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
 		//
-		__HAL_TIM_SET_COMPARE(&htim15, TIM_CHANNEL_1, fabs(DutyCycle));
+		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 	else
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 1);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 0);
 		DutyCycle = ((PWMDrive * 84999.00) / 2500.00) - 100;
-		if (PWMDrive < -84999) PWMDrive = -84999;
+		if (DutyCycle < -84999) DutyCycle = -84999;
 		else if (DutyCycle > -17000) DutyCycle = 0;
-		else if (DutyCycle > -18000) DutyCycle = -26000;
+		else if (DutyCycle > -18000) DutyCycle = -18000;
 //		DutyCycle = ((PWMDrive * 4899.00) / 2500.00) - 100;
 //		if (PWMDrive < -4999) PWMDrive = -4999;
 //		else if (PWMDrive > -1250) PWMDrive = 0;
@@ -1001,7 +1082,7 @@ void MotorControl3()
 //		else if (DutyCycle > -1800) DutyCycle = 0;
 //		else if (DutyCycle > -2300) DutyCycle = -2300;
 //		__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, fabs(DutyCycle));
-		__HAL_TIM_SET_COMPARE(&htim15, TIM_CHANNEL_1, fabs(DutyCycle));
+		__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, fabs(DutyCycle));
 	}
 }
 
@@ -1017,7 +1098,19 @@ uint64_t micros()
 {
 	return __HAL_TIM_GET_COUNTER(&htim5) + _micros;
 }
+void PotenEncoderPosVel_Update()
+{
+	Potendata.Position[NEW] = Degrees_Position;
+	Potendata.PotenPostion_1turn = Potendata.Position[NEW] % 360;
+	diffPosition = Potendata.Position[NEW] - Potendata.Position[OLD];
+	if(diffPosition > 180)
+	turn++;
+	if(diffPosition < -180)
+	turn--;
 
+	Potendata.Position[OLD] = Potendata.Position[NEW];
+
+}
 void QEIEncoderPosVel_Update()
 {
 	//collect data
