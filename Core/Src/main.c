@@ -311,7 +311,7 @@ int main(void)
 
 			  if(timestamp2 > 4294967296) timestamp2 = 0; //Counter Reset Overflow
 
-			  dataSend = fabs(Degrees_Position);
+			  dataSend = fabs(ADC_Average[0]);
 
 			  dataBytes[0] = header; // Header byte
 			  dataBytes[1] = (uint8_t)(dataSend & 0xFF); // Lower byte
@@ -1055,7 +1055,7 @@ void MotorControl3()
 //		if (DutyCycle > 84999) DutyCycle = 84999;
 //		else if (DutyCycle < 17000) DutyCycle = 0;
 //		else if (DutyCycle < 18000) DutyCycle = 18000;
-		DutyCycle = ((PWMDrive * 83999.00) / 20.00) + 100;
+		DutyCycle = ((PWMDrive * 83999.00) / 227.00) + 100;
 		if (DutyCycle > 84999) DutyCycle = 84999;
 		else if (DutyCycle < 17000) DutyCycle = 0;
 		else if (DutyCycle < 18000) DutyCycle = 18000;
@@ -1066,7 +1066,7 @@ void MotorControl3()
 	{
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, 1);
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, 0);
-		DutyCycle = ((PWMDrive * 83999.00) / 20.00) - 100;
+		DutyCycle = ((PWMDrive * 83999.00) / 227.00) - 100;
 		if (DutyCycle < -84999) DutyCycle = -84999;
 		else if (DutyCycle > -17000) DutyCycle = 0;
 		else if (DutyCycle > -18000) DutyCycle = -18000;
